@@ -683,7 +683,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         # Use TextWindow to display the result instead of browseable message
         wx.CallAfter(lambda: TextWindow(
             result, 
-            "AI Assistant Response", 
+            "Message", 
             readOnly=True
         ))
         
