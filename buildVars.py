@@ -16,7 +16,7 @@ def _(arg):
 # Add-on information variables
 addon_info = {
 	# add-on Name/identifier, internal for NVDA
-	"addon_name": "Genius Assistant",
+	"addon_name": "GeniusAssistant",
 	# Add-on summary/title, usually the user visible name of the add-on
 	# Translators: Summary/title for this add-on
 	# to be shown on installation and add-on information found in add-on store
@@ -35,9 +35,9 @@ addon_info = {
 	# Documentation file name
 	"addon_docFileName": "readme.html",
 	# Minimum NVDA version supported (e.g. "2019.3.0", minor version is optional)
-	"addon_minimumNVDAVersion": "2024.4.2",
+	"addon_minimumNVDAVersion": "2024.4.1",
 	# Last NVDA version supported/tested (e.g. "2024.4.1", ideally more recent than minimum version)
-	"addon_lastTestedNVDAVersion": "2024.2",
+	"addon_lastTestedNVDAVersion": "2024.4.2",
 	# Add-on update channel (default is None, denoting stable releases,
 	# and for development releases, use "dev".)
 	# Do not change unless you know what you are doing!
