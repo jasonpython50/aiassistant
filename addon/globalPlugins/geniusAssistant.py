@@ -7,6 +7,7 @@ import urllib.error
 import base64
 from typing import Optional, Dict, Any
 import re
+import time
 
 import globalPluginHandler
 import api
@@ -17,6 +18,7 @@ import addonHandler
 import scriptHandler
 import speech
 import config
+import textInfos
 from gui import settingsDialogs
 from gui import guiHelper
 from logHandler import log
@@ -409,9 +411,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             ui.message("Processing previous request. Please wait.")
             return
         
-        # Get selected text
-        selectedText = self.getSelectedText()
-        if not selectedText:
+        # Get selected text using the method from Instant Translate
+        text = self.getSelectedText()
+        if not text:
             ui.message("No text selected. Please select text before using this command.")
             return
         
@@ -442,76 +444,21 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         # Start processing in a background thread
         threading.Thread(
             target=self.processRequest,
-            args=(selectedText, apiService, selectedModel, api_key),
+            args=(text, apiService, selectedModel, api_key),
             daemon=True
         ).start()
     
-    def getSelectedText(self) -> str:
-        """Get the currently selected text."""
+    def getSelectedText(self):
+        """Get the currently selected text using the approach from Instant Translate."""
+        obj = api.getCaretObject()
         try:
-            # First try to get selection from focus object
-            focus = api.getFocusObject()
-            if hasattr(focus, "selection") and focus.selection:
-                return focus.selection.text
-            
-            # If not available from focus, try getting it from clipboard
-            # First store the original clipboard content
-            original = api.getClipData()
-            
-            # Send Ctrl+C to copy selection
-            wx.CallAfter(lambda: self.sendCopyCommand())
-            
-            # Wait a bit for the clipboard to be updated
-            wx.CallLater(100, lambda: self.getClipboardText(original))
-            return ""  # Placeholder, will be updated by getClipboardText
-            
-        except Exception as e:
-            log.error(f"Error getting selected text: {e}")
-            return ""
-    
-    def sendCopyCommand(self):
-        """Send Ctrl+C to copy selection to clipboard."""
-        import keyboardHandler
-        keyboardHandler.KeyboardInputGesture.fromName("control+c").send()
-    
-    def getClipboardText(self, original):
-        """Get text from clipboard and restore original content."""
-        try:
-            # Get the current clipboard content
-            clipData = api.getClipData()
-            
-            # If it's different from the original, it's our selection
-            if clipData != original and clipData:
-                # Process the selected text
-                self.processRequest(
-                    clipData,
-                    config.conf["aiAssistant"]["apiService"],
-                    config.conf["aiAssistant"]["selectedModel"],
-                    self.getApiKey()
-                )
-            else:
-                ui.message("No text selected. Please select text before using this command.")
-                self.processing = False
-            
-            # Restore the original clipboard content if needed
-            if original:
-                api.copyToClip(original)
-        except Exception as e:
-            log.error(f"Error getting clipboard text: {e}")
-            ui.message("Error getting selected text. Please try again.")
-            self.processing = False
-    
-    def getApiKey(self) -> str:
-        """Get the API key for the selected provider."""
-        apiService = config.conf["aiAssistant"]["apiService"]
-        serviceKeyMap = {
-            "openai": "openaiApiKey",
-            "anthropic": "anthropicApiKey",
-            "gemini": "geminiApiKey",
-            "cohere": "cohereApiKey"
-        }
+            info = obj.makeTextInfo(textInfos.POSITION_SELECTION)
+            if info and not info.isCollapsed:
+                return info.text
+        except (RuntimeError, NotImplementedError):
+            pass
         
-        return config.conf["aiAssistant"].get(serviceKeyMap.get(apiService, ""), "")
+        return None
     
     def processRequest(self, text: str, apiService: str, model: str, api_key: str):
         """Process the request with the selected AI model."""
@@ -683,7 +630,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         # Use TextWindow to display the result instead of browseable message
         wx.CallAfter(lambda: TextWindow(
             result, 
-            "AI Assistant Response", 
+            "Message", 
             readOnly=True
         ))
         
